@@ -1,4 +1,4 @@
 target/
 .idea/
-target/.rustc_info.json
+target/debug/.rustc_info.json
 
