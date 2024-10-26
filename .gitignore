@@ -2,4 +2,6 @@ target/
 .idea/
 target/debug/.rustc_info.json
 target/.rustc_info.json
+target/.rustc_info.json
+*.json
 
