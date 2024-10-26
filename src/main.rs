@@ -1,49 +1,43 @@
 #![allow(unused)]
-use anyhow::Result;
-use ash::{
-    self,
-    vk::{self, DeviceQueueCreateInfo},
-};
-fn main() -> Result<()> {
-    let entry = unsafe { ash::Entry::load() }?;
-
-    let instance = {
-        let application_info = vk::ApplicationInfo::builder().api_version(vk::API_VERSION_1_0);
-        let create_info = vk::InstanceCreateInfo::builder().application_info(&application_info);
-        unsafe { entry.create_instance(&create_info, None) }?
-    };
-
-    let dev = {
-        let queue_priorities = [1.0];
-        let queue_create_infos = [DeviceQueueCreateInfo::builder()
-            .queue_family_index(0)
-            .queue_priorities(&queue_priorities)
-            .build()];
-        let create_info = vk::DeviceCreateInfo::builder().queue_create_infos(&queue_create_infos);
-        let ph_dev = unsafe { instance.enumerate_physical_devices() }?;
-        unsafe { instance.create_device(ph_dev[0], &create_info, None) }?
-    };
-    println!("ABOBUS");
-    let queue = unsafe { dev.get_device_queue(0, 0) };
-
-    let com_pool = {
-        let create_info = vk::CommandPoolCreateInfo::builder()
-            .queue_family_index(0);
-        unsafe { dev.create_command_pool(&create_info, None) }?
-    };
-
-    let com_buf = {
-        let create_info = vk::CommandBufferAllocateInfo::builder()
-            .command_pool(com_pool)
-            .command_buffer_count(1);
-        unsafe { dev.allocate_command_buffers(&create_info) }?
-            .into_iter()
-            .next()
-            .unwrap()
-    };
-
-    unsafe { dev.destroy_command_pool(com_pool, None) };
-    unsafe { dev.destroy_device(None) };
-    unsafe { instance.destroy_instance(None) };
-    Ok(())
+use vulkano::device::QueueFlags;
+use vulkano::device::{Device, DeviceCreateInfo, QueueCreateInfo};
+use vulkano::instance::{Instance, InstanceCreateInfo};
+use vulkano::VulkanLibrary;
+fn main() {
+    let library = VulkanLibrary::new().expect("no local Vulkan library/DLL");
+    let instance =
+        Instance::new(library, InstanceCreateInfo::default()).expect("failed to create instance");
+    let physical_device = instance
+        .enumerate_physical_devices()
+        .expect("could not enumerate devices")
+        .next()
+        .expect("no devices available");
+    for family in physical_device.queue_family_properties() {
+        println!(
+            "Found a queue family with {:?} queue(s)",
+            family.queue_count
+        );
+    }
+    let queue_family_index = physical_device
+        .queue_family_properties()
+        .iter()
+        .enumerate()
+        .position(|(_queue_family_index, queue_family_properties)| {
+            queue_family_properties
+                .queue_flags
+                .contains(QueueFlags::GRAPHICS)
+        })
+        .expect("couldn't find a graphical queue family") as u32;
+    let (device, mut queues) = Device::new(
+        physical_device,
+        DeviceCreateInfo {
+            queue_create_infos: vec![QueueCreateInfo {
+                queue_family_index,
+                ..Default::default()
+            }],
+            ..Default::default()
+        },
+    )
+    .expect("failed to create device");
+    let queue = queues.next().unwrap();
 }
