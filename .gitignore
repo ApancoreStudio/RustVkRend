@@ -1,7 +1,6 @@
-target/
+/target/
 .idea/
-target/debug/.rustc_info.json
-target/.rustc_info.json
-target/.rustc_info.json
-*.json
+/target/debug/.rustc_info.json
+/target/.rustc_info.json
+/*.json
 
