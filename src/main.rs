@@ -6,7 +6,9 @@ use vulkano::device::QueueFlags;
 use vulkano::device::{Device, DeviceCreateInfo, QueueCreateInfo};
 
 use std::sync::Arc;
-use vulkano::memory::allocator::StandardMemoryAllocator;
+
+use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage};
+use vulkano::memory::allocator::{AllocationCreateInfo, MemoryTypeFilter,StandardMemoryAllocator};
 
 fn main() {
     //инициализация библиотеки
@@ -52,4 +54,22 @@ fn main() {
     let queue = queues.next().unwrap();
     //инициализация распределителя памяти
     let memory_allocator = Arc::new(StandardMemoryAllocator::new_default(device.clone()));
+    let iter = (0..128).map(|_| 5u8);
+    let buffer = Buffer::from_iter(
+        memory_allocator.clone(),
+        BufferCreateInfo {
+            usage: BufferUsage::UNIFORM_BUFFER,
+            ..Default::default()
+        },
+        AllocationCreateInfo {
+            memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
+                | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+            ..Default::default()
+        },
+        iter,
+    )
+        .unwrap();
+    let mut content = buffer.write().unwrap();
+    content[12] = 83;
+    content[7] = 3;
 }
